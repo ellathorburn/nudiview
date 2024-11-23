@@ -1,0 +1,56 @@
+{% extends 'report/base.html' %}
+{% block content %}
+
+<div class = container style = "max-width:70em">
+</br>
+<h2>{{site.name}} <small class="text-muted">({{site.slug}})</small></h2>
+
+<p class="lead">
+    {{site.description}} 
+</p>
+<p>
+{%if site.link%}<a href="{{site.link}}" class="btn btn-light btn-sm" target="_blank">🔗 More info {{site.link_caption}}</a>{%endif%}
+</p>
+
+{%if site.weather %}
+{% include "weather/site_weather_display.html" %} 
+<p>
+<small class="text-muted">Guide: <span style="color:green">green good,</span> <span style="color:red">red bad.</span> Arrows wind, line swell.</small></span><br>
+<div id="best_times"></div>
+<a href="{%url 'siteweatheredit' site.weather.slug %}" class="btn btn-success btn-sm">Click here to see weather details</a>
+</p>
+{%endif%}
+
+
+{% if user.is_authenticated %}
+{% include "report/report_form.html" %}
+{% else %}
+<p><a class="link-primary" href="{%url 'login'%}">Login to add reports</a></p>
+{% endif %}
+<br>
+{% include "report/table.html" %} 
+
+
+</div>
+
+</div>
+
+<script>
+$('select[name="date_0"]').on('keyup input', function() {
+    $('select[name="date_0"]').not(this).val($(this).val());
+});
+$('select[name="date_1"]').on('keyup input', function() {
+    $('select[name="date_1"]').not(this).val($(this).val());
+});
+$('input[name="visibility"]').on('keyup input', function() {
+    $('input[name="visibility"]').not(this).val($(this).val());
+});
+$('select[name="conditions"]').on('keyup input', function() {
+    $('select[name="conditions"]').not(this).val($(this).val());
+});
+$('input[name="comments"]').on('keyup input', function() {
+    $('input[name="comments"]').not(this).val($(this).val());
+});
+</script>
+
+{% endblock %}

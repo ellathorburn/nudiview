@@ -1,0 +1,42 @@
+{% extends 'report/base.html' %}
+{% block content %}
+
+<div class = 'container'>
+    <br/>
+    <h2>Create an account</h2>
+    <p>With an account you can add reports.</p>
+    <p>By signing up you agree that data you contribute is <a href="{%url 'about'%}">made freely
+        available for research.</a></p>
+    <p>Have an account? <a href = "{% url 'login' %}">Log in</a></p>
+    <div class = 'form-group {%if field.errors%}alert alert-danger{%endif%}' style="max-width: 400px;">
+        <form method = 'post'>
+    
+            {% csrf_token %}
+    
+            {% load widget_tweaks %}
+        
+            {%for field in form%}
+                {{field.errors}}
+                {{field.label_tag}}
+                {%render_field field class='form-control'%}
+        
+            {%endfor%}
+            <br>
+    
+            <button type="submit" id = "signup_button" class='btn btn-primary'>Sign Up</button>
+        </div>
+    
+        </form>
+    
+    
+</div>
+
+</div>
+
+<script>
+    $('#signup_button').one('submit', function() {
+    $(this).find('input[type="submit"]').attr('disabled','disabled');
+});
+</script>
+
+{% endblock %}

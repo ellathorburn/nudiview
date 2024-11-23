@@ -1,0 +1,251 @@
+
+    <!-- Load d3.js -->
+<script src="https://d3js.org/d3.v7.min.js"></script>
+
+<!-- Create a div where the graph will take place -->
+<div style = 'overflow-x: scroll; width: 100%;' >
+<div id="wind_plot"></div>
+</div>
+<style> /* set the CSS */
+
+.grid line {
+  stroke: lightgrey;
+  stroke-opacity: 0.7;
+  shape-rendering: crispEdges;
+}
+
+.grid path {
+  stroke-width: 0;
+}
+
+.line {
+  stroke: url(#swell_gradient);
+  stroke-width: 1.5;
+  fill : url(#swell_gradient);
+  opacity : 0.4;
+}
+
+
+</style>
+
+
+<script>
+
+// set the dimensions and margins of the graph
+var margin = {top: 10, right: 40, bottom: 30, left: 60},
+    width = 700 - margin.left - margin.right,
+    height = 200 - margin.top - margin.bottom;
+
+// append the svg object to the body of the page
+var svg = d3.select("#wind_plot")
+  .append("svg")
+    .attr("width", width + margin.left + margin.right)
+    .attr("height", height + margin.top + margin.bottom)
+  .append("g")
+    .attr("transform",
+          "translate(" + margin.left + "," + margin.top + ")");
+
+
+var wind_data = d3.csv("{%url 'weather_csv' site.weather.slug %}").then((data) => {
+
+var parseTime = d3.timeParse("%Y-%m-%d %H:%M:%S");
+
+var dates = [];
+for (let obj of data) {
+  dates.push(parseTime(obj.time));
+}
+
+var domain = d3.extent(dates);
+
+var wind_colours = d3.scaleOrdinal()
+    .domain([0, 1, 2])
+    .range(['green', 'orange', 'red']);
+
+// gridlines in x axis function
+function make_x_gridlines() {		
+    return d3.axisBottom(x)
+        .ticks(10)
+}
+
+// gridlines in y axis function
+function make_y_gridlines() {		
+    return d3.axisLeft(y)
+        .ticks(5)
+}
+
+var x = d3.scaleTime()
+  .domain(domain)
+  .range([ 0, width ]);
+
+svg.append("g")
+    .attr("transform", "translate(0," + height + ")")
+    .call(d3.axisBottom(x));
+
+ var y = d3.scaleLinear()
+    .domain([0, 30])
+    .range([ height, 0]);
+    
+  svg.append("g")
+    .call(d3.axisLeft(y)
+    .ticks(5));
+    
+ var y1 = d3.scaleLinear()
+    .domain([0, 6])
+    .range([ height, 0]);
+    
+      // add the X gridlines
+  svg.append("g")			
+      .attr("class", "grid")
+      .attr("transform", "translate(0," + height + ")")
+      .call(make_x_gridlines()
+          .tickSize(-height)
+          .tickFormat("")
+      )
+
+  // add the Y gridlines
+  svg.append("g")			
+      .attr("class", "grid")
+      .call(make_y_gridlines()
+          .tickSize(-width)
+          .tickFormat("")
+      )
+
+    
+svg.append("g")
+.attr("transform", "translate(600,0)")
+.call(d3.axisRight(y1).ticks(5));
+
+svg.append("linearGradient")
+    .attr("id", "swell_gradient")
+    .attr("gradientUnits", "userSpaceOnUse")
+    .attr("x1", 0)
+    .attr("x2", width)
+  .selectAll("stop")
+  .data(data)
+  .join("stop")
+    .attr("offset", d => x(parseTime(d.time)) / width)
+    .attr("stop-color", d => wind_colours(parseInt(d.swell_score)));
+    
+  svg.append("path")
+      .datum(data)
+      .attr("class", "line")
+      .attr("stroke-width", 1.5)
+      .attr("d", d3.area()
+        .x(function(d) { return x(parseTime(d.time)) })
+        .y0(y(0))
+        .y1(function(d) { return y(d.swell*5) })
+        ) 
+        
+        
+    svg.append("text")
+    .attr("class", "y label")
+    .attr("text-anchor", "end")
+    .style("font-size", "14px")
+    .attr("y", 6)
+    .attr("dy", "-2.2em")
+    .attr("transform", "rotate(-90)")
+    .text("wind (knots)");
+    
+    svg.append("text")
+    .attr("class", "y label")
+    .attr("text-anchor", "end")
+    .style("font-size", "14px")
+    .attr("y", 6)
+    .attr("dy", "590")
+    .attr("transform", "rotate(-90)")
+    .text("swell (m)");
+  
+      
+  d3.select('g')
+	.selectAll('path')
+	.data(data)
+	.enter()
+	.append('path')
+	.attr('transform', function(d) {
+		return 'translate(' + x(parseTime(d.time)) + ','+y(d.wind) +' ) rotate(' + d.wind_dir + ')';
+	})
+	.attr('d', "M2.2 0 0 6.6 0 6.6 0 6.6-2.2 0-5.5-6.6 0-4.4 5.5-6.6Z")
+	.style("fill", function(d) {return wind_colours(parseInt(d.wind_score));})
+    .style("opacity", 0.7)
+
+
+    
+    var Tooltip = d3.select("#wind_plot")
+    .append("div")
+    .style("opacity", 0)
+    .attr("class", "tooltip text-center")
+    .style("background-color", "white")
+    .style("border", "solid")
+    .style("height", "0px")
+    .style("border-width", "1px")
+    .style("border-color", "#343a40")
+    .style("border-radius", "5px")
+    .style("padding", "6px")
+    .style("top", "0px")
+    .style("left", "0px")
+
+    const formatTime = d3.timeFormat("%a %I:00 %p");
+
+        var mouseover = function(event, a) {
+            Tooltip
+            .style("opacity", .90)
+            .style("min-width", "130px")
+            .style("height", "80px")
+            .html("<b>" + formatTime(parseTime(a.time))+
+                '</b><span style="color:' + wind_colours(parseInt(a.wind_score))+ '">' +
+                '<br>Wind: '+ a.wind + 'kn ' + a.wind_dir_text +
+                '</span><span style="color:' + wind_colours(parseInt(a.swell_score))+ '">' +
+              '<br>Swell: ' + a.swell + 'm ' + a.swell_dir_text + '</span>')
+            .style("top", event.pageY-100 + "px")
+            .style("left", event.pageX-60 + "px")
+            d3.select(event.currentTarget)
+            .style("stroke", wind_colours(parseInt(a.total_score)))
+            .style("fill", wind_colours(parseInt(a.total_score)))
+            .style("opacity", .25)
+        }
+        var mouseleave = function(d) {
+            Tooltip
+            .style("opacity", 0)
+            d3.select(this)
+            .style("stroke", "none")
+            .style("fill", "none")
+            .style("opacity", 0.8)
+        }
+
+    svg.append("g")
+      .attr("fill", "None")
+      .attr("pointer-events", "all")
+    .selectAll("rect")
+    .data(d3.pairs(data))
+    .join("rect")
+      .attr("x", ([a, b]) => x(parseTime(a.time)))
+      .attr("height", height)
+      .attr("width", ([a, b]) => x(parseTime(b.time)) - x(parseTime(a.time)))
+      .on("mouseover", (event, [a]) => mouseover(event, a))
+      .on("mouseout", mouseleave)
+
+      scores_times = d3.filter(data, function(d){return d.weekday!='NA'})
+          scores_by_day = d3.rollup(scores_times, v => d3.mean(v, d => d.total_score), d => d.weekday)
+          best_day = d3.least(d3.group(scores_times, d => d.weekday), ([, v]) => d3.mean(v, d => d.total_score))
+          var good_days = new Map(
+            [...scores_by_day].filter(([k, v]) => v < 1 )).keys();
+            good_days = Array.from(good_days)
+
+          if (good_days.length == 0) {
+            description_string = "Not a great week, but " + best_day[0]  + " is your best bet."
+            } else if (good_days.length == 1) {
+                description_string = good_days[0] +" is looking good!"
+            } else if (good_days.length == 2) {
+                description_string = good_days[0] + " and " + good_days[1]+ " are looking good!"
+            } else if (good_days.length == 3) {
+                description_string = good_days[0] + ", " + good_days[1] + " & " + good_days[2] + " are looking good!"
+            } else {
+                description_string = good_days[0] + ", " + good_days[1] + ", " + good_days[2] + " & " + good_days[3] + " are looking good!"
+            }
+
+          d3.select('#best_times').append('p').text(description_string);
+
+
+})
+
+</script>
